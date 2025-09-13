@@ -1,0 +1,31 @@
+Package: mobaa
+Type: Package
+Title: mobaa
+Version: 0.1.0
+Authors@R: 
+    c(
+      person(given = "Pashupati P.",
+             family = "Mishra",
+             email = "pashupati.mishra@tuni.fi",
+             role = c("aut", "cre")),
+      person(given = "Binisha H.",
+             family = "Mishra",
+             email = "binisha.hamalmishra@tuni.fi",
+             role = "aut")
+    )
+Description: An R package for identifying population subgroups with distinct multi-omics molecular profile. 
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends: R (>= 3.6)
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
+Imports: 
+    ggpubr,
+    factoextra,
+    proxy,
+    WGCNA,
+    mosbi,
+    dplyr,
+    dynamicTreeCut

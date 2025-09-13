@@ -1,0 +1,59 @@
+---
+title: "Getting started with mobaa"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with mobaa}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```r
+# Install and load the package
+if (!requireNamespace("RTCGAToolbox", quietly = TRUE)) {
+  BiocManager::install("RTCGAToolbox")
+}
+library(RTCGAToolbox)
+# List available datasets and run dates
+datasets <- getFirehoseDatasets()
+dates <- getFirehoseRunningDates()
+
+```
+
+```r
+# Fetch RNA‑seq data for KIPAN
+kipan_rna <- getFirehoseData(
+  dataset = "KIPAN",
+  runDate = dates[1],
+  gistic2_Date = NULL,
+  Clinic = FALSE,
+  RNAseq_Gene = TRUE
+)
+head(kipan_rna@RNAseq_Gene)
+```
+
+
+
+```r
+# install.packages("remotes")
+# remotes::install_github("YOUR-USERNAME/mobaa")
+library(mobaa)
+```
+
+## What’s inside
+
+```r
+ls("package:mobaa")
+```
+
+## Examples
+
+Add your usage examples here, e.g.
+
+```r
+# result <- your_function_name(args)
+# print(result)
+```
