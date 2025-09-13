@@ -1,0 +1,9 @@
+# macOS system files
+.DS_Store
+._*.R
+
+# R temporary files
+.Rhistory
+.RData
+.Rproj.user
+
