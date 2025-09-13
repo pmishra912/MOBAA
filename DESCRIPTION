@@ -6,11 +6,11 @@ Authors@R:
     c(
       person(given = "Pashupati P.",
              family = "Mishra",
-             email = "pashupati.mishra@tuni.fi",
+             email = "pashu312@gmail.com",
              role = c("aut", "cre")),
       person(given = "Binisha H.",
              family = "Mishra",
-             email = "binisha.hamalmishra@tuni.fi",
+             email = "binishahamal@hotmail.com",
              role = "aut")
     )
 Description: An R package for identifying population subgroups with distinct multi-omics molecular profile. 
