@@ -1,5 +1,6 @@
 ---
-title: "Getting started with mobaa"
+title: "MOBAA (Multi-Omic Bicluster Association Analysis)"
+
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Getting started with mobaa}
@@ -8,52 +9,347 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+# Ensure reproducibility
+set.seed(100)
+RNGkind("L'Ecuyer-CMRG")
+options(mc.cores = 1)
 
-```r
-# Install and load the package
-if (!requireNamespace("RTCGAToolbox", quietly = TRUE)) {
-  BiocManager::install("RTCGAToolbox")
-}
-library(RTCGAToolbox)
-# List available datasets and run dates
-datasets <- getFirehoseDatasets()
-dates <- getFirehoseRunningDates()
-
-```
-
-```r
-# Fetch RNA‑seq data for KIPAN
-kipan_rna <- getFirehoseData(
-  dataset = "KIPAN",
-  runDate = dates[1],
-  gistic2_Date = NULL,
-  Clinic = FALSE,
-  RNAseq_Gene = TRUE
+# global chunk options
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center"
 )
-head(kipan_rna@RNAseq_Gene)
+
+```
+
+MOBAA is an R-based tool for discovering biologically meaningful subgroups within a population using multi-omics data. The method applies biclustering independently to each omics dataset (e.g., gene expression, protein abundance, DNA methylation) to detect locally coherent patterns of features and samples. It then integrates these biclusters across omic layers by quantifying sample overlap with the Jaccard index, grouping them into bicluster modules. Within each module, MOBAA identifies multi-omic relations, sets of biclusters from different omics that share the largest sample overlap, and tests their statistical significance using permutation-based methods. The resulting subgroups represent coherent, multi-layered molecular profiles that may correspond to disease subtypes, phenotypes, or other biologically relevant states. MOBAA also provides downstream analyses, including phenotype enrichment, inter-omics correlation, differential feature analysis, and pathway enrichment. Unlike many existing tools that integrate only two omics types, MOBAA is scalable to handle multiple omic layers simultaneously. This makes it a powerful framework for uncovering complex biological heterogeneity and advancing precision medicine research.
+
+## Example Workflow Using TCGA-BRCA Data
+
+In this tutorial, we demonstrate how to use MOBAA with a multi-omic dataset from TCGA-BRCA. We'll retrieve gene expression, methylation, and protein abundance data, and walk through the steps of biclustering,  multi-omic integration and downstream analyses.
+
+We begin by loading the necessary packages and downloading the BRCA dataset from TCGA. This includes RNA sequencing, methylation, and protein expression data.
+
+> This step may take a few minutes depending on your internet speed and disk space.
+
+
+
+
+```{r,eval=FALSE, cache=TRUE,message=FALSE}
+library(curatedTCGAData)
+library(MultiAssayExperiment)
+
+## Download BRCA dataset for this example analysis 
+availableTCGA <- curatedTCGAData(dry.run = TRUE,version = "2.1.1")
+
+brca_multi <- curatedTCGAData(
+  diseaseCode = "BRCA",
+  assays = c("RNASeq2GeneNorm", "Methylation_methyl450", "RPPAArray"),
+  version = "2.1.1",
+  dry.run = FALSE
+)
+
+
+rnaseq <- assays(brca_multi)[["BRCA_RNASeq2GeneNorm-20160128"]] 
+rnaseq <- na.omit(rnaseq) # 12652  1212
+
+prot <- assays(brca_multi)[["BRCA_RPPAArray-20160128"]]
+prot <- na.omit(prot) # 216 937
+
+meth <- assays(brca_multi)[["BRCA_Methylation_methyl450-20160128"]]
+meth <- na.omit(meth)
+
+clinical_data <- colData(brca_multi)
+table(clinical_data$PAM50.mRNA)
+
+# keep only those patients who have BRCA subtype info
+clinical_data <- clinical_data[complete.cases(clinical_data$PAM50.mRNA), ] 
+table(clinical_data$PAM50.mRNA)
+
+```
+
+Prepare data for mobaa 
+
+```{r,eval=FALSE}
+# extract patient IDs (the first 12 characters),
+colnames(rnaseq) <- substr(colnames(rnaseq), 1, 12)
+colnames(meth) <- substr(colnames(meth), 1, 12)
+colnames(prot) <- substr(colnames(prot), 1, 12)
+
+common.patients <- Reduce(intersect, list(colnames(rnaseq),colnames(meth), colnames(prot), clinical_data$patientID)) # 641
+rnaseq_final <- rnaseq[,match(common.patients,colnames(rnaseq))]
+meth_final <- meth[,match(common.patients,colnames(meth))]
+prot_final <- prot[,match(common.patients,colnames(prot))]
+clinical_final <- clinical_data[match(common.patients,clinical_data$patientID),]
+clinical_final$patientID==colnames(rnaseq_final)
+clinical_final$patientID==colnames(prot_final)
+clinical_final$sampleID <- clinical_final$patientID # for the mobaa code to recognize
+table(clinical_final$PAM50.mRNA)
+
+# Keep only the 20000 most variable CpGs in the methylation data
+row_vars <- apply(meth_final, 1, var, na.rm = TRUE)
+top_var_indices <- order(row_vars, decreasing = TRUE)[1:20000]
+meth_top20k <- as.matrix(meth_final[top_var_indices, ])
+
 ```
 
 
+```{r,cache=TRUE,echo=FALSE}
+load("brca_harmonized.RData")
+```
 
-```r
-# install.packages("remotes")
-# remotes::install_github("YOUR-USERNAME/mobaa")
+```{r,cache=TRUE}
+# standardize the data
+# Adapted from:
+# Rose, T. D. (2025). Example workflow (mosbi package vignette, Bioconductor).
+# Retrieved April 15, 2025, from https://bioconductor.org/packages/devel/bioc/vignettes/mosbi/inst/doc/example-workflow.html
+
+z_score <- function(x, margin = 2) {
+    z_fun <- function(y) {
+        (y - mean(y, na.rm = TRUE)) / sd(y, na.rm = TRUE)
+    }
+    if (margin == 2) {
+        apply(x, margin, z_fun)
+    } else if (margin == 1) {
+        t(apply(x, margin, z_fun))
+    }
+}
+
+rnaseq_zscore <- z_score(rnaseq_final)
+prot_zscore <- z_score(prot_final)
+dim(rnaseq_zscore)
+dim(prot_zscore)
+dim(meth_top20k)
+```
+
+```{r,cache=TRUE,echo=FALSE,message=FALSE}
+remotes::install_local("/Users/dkpami/Desktop/Academy_project/mobaa/mobaa_codes/mobaa.zip")
 library(mobaa)
 ```
 
-## What’s inside
-
-```r
-ls("package:mobaa")
+```{r,cache=TRUE,eval=FALSE}
+remotes::install_local("mobaa.zip")
+library(mobaa)
 ```
 
-## Examples
+Run ensembel biclustering using a wrapper function for mosbi
 
-Add your usage examples here, e.g.
+```{r,cache=TRUE,fig.show='hide'}
+prot_ensemble_bicluster_list <- find_ensemble_bc(
+  prot_zscore,methods = c("fabia", "qubic"),
+  seed = 12323
+  )
 
-```r
-# result <- your_function_name(args)
-# print(result)
+rnaseq_ensemble_bicluster_list <- find_ensemble_bc(
+  rnaseq_zscore,methods = c("fabia", "qubic"),
+  seed = 23434
+  )
+
+meth_ensemble_bicluster_list <- find_ensemble_bc(
+  meth_top20k,methods = c("fabia", "qubic"),
+  seed = 34545
+  )
+```
+
+Calculate Jaccard distance
+
+```{r,cache=TRUE,message=FALSE}
+bc_dist_res <- generate_jaccard_dist(
+  mosbi_outputs=list(prot_ensemble_bicluster_list,rnaseq_ensemble_bicluster_list,meth_ensemble_bicluster_list),
+  omic_names=c("prot","rnaseq","meth"),
+  omic_data=list(prot_zscore,rnaseq_zscore,meth_top20k)
+  )
+```
+
+Hierarchical clustering of biclusters across different omics
+ 
+```{r,cache=TRUE,warning=FALSE,fig.width=6, fig.height=4}
+bc_module_res <- hclust_bcs(bc_dist_res[[1]],plots=TRUE)
+
+# identified bicluster modules
+bc_module_res$multiomic_modules
+```
+
+Find the best multi-omic relation
+
+```{r,cache=TRUE,message=TRUE}
+# grey relation
+grey_relation <- find_relations(
+  biclusters_list=list(prot=prot_ensemble_bicluster_list,rnaseq=rnaseq_ensemble_bicluster_list),
+  module="grey",
+  pheno=clinical_final,
+  bc_dist_obj=bc_dist_res,
+  bc_hclust_obj=bc_module_res
+  )
+
+# turquoise relation
+turquoise_relation <- find_relations(
+  biclusters_list=list( meth=meth_ensemble_bicluster_list,rnaseq=rnaseq_ensemble_bicluster_list,prot=prot_ensemble_bicluster_list),
+  module="turquoise",
+  pheno=clinical_final,
+  bc_dist_obj=bc_dist_res,
+  bc_hclust_obj=bc_module_res
+  )
+```
+
+How many patients are present in all the biclusters in each of the relations (patient overlap).
+```{r,cache=TRUE,message=TRUE}
+# grey
+patients_overlap_grey <- Reduce(intersect, grey_relation$sample_ids)
+length(patients_overlap_grey) 
+
+# turquouse
+patients_overlap_turquoise <- Reduce(intersect, turquoise_relation$sample_ids)
+length(patients_overlap_turquoise) 
+```
+
+Are the shared number of patients across biclusters in the relations statistically significant?
+
+```{r,cache=TRUE,message=TRUE}
+# grey
+perm.overlap.sig(grey_relation$sample_ids,clinical_final$sampleID) 
+
+# turquouse
+perm.overlap.sig(turquoise_relation$sample_ids,clinical_final$sampleID) 
+```
+
+Check number of overlapped patients across different subtypes.
+
+```{r,cache=TRUE,message=TRUE}
+sum(patients_overlap_grey %in% clinical_final$sampleID[clinical_final$PAM50.mRNA=="Basal-like"]) 
+sum(patients_overlap_grey %in% clinical_final$sampleID[clinical_final$PAM50.mRNA=="HER2-enriched"])
+sum(patients_overlap_grey %in% clinical_final$sampleID[clinical_final$PAM50.mRNA=="Luminal A"])
+sum(patients_overlap_grey %in% clinical_final$sampleID[clinical_final$PAM50.mRNA=="Luminal B"])
+sum(patients_overlap_grey %in% clinical_final$sampleID[clinical_final$PAM50.mRNA=="Normal-like"])
+```
+
+> The participant overlap (n=20) is statistically significant in grey relation but not in turquoise.
+> Also, all of the participants who are present in all the biclusters in grey relation (overlap) belong to 'Basal-like' subtype.
+> Therefore, lets continue analyzing grey relation further.
+
+Check patient distribution across different subtypes in the whole data
+
+```{r}
+table(clinical_final$PAM50.mRNA)
+```
+
+Is the proportion of patients with subtype 'Basal-like' in the grey relation greater than the background proportion?
+
+```{r,cache=TRUE}
+prop.test(x = 22, n = 22, p = 39/179, alternative = "greater")
+
+## or, in case of lower sample size, binom.test is the exact test and preferred
+binom.test(x = 22, n = 22, p = 39/179, alternative = "greater")
+```
+
+Summary level (eigenfeatures) correlation between different omics in the grey relation.
+
+```{r,cache=TRUE,fig.width=5, fig.height=4}
+corr_result <- correlate_eigenfeatures(
+  omic_list = list(rnaseq = rnaseq_zscore,prot = prot_zscore),
+  multiomic_relation = grey_relation,
+  output_prefix = "bic_relation"
+  )
+
+# correlation among summary expression levels 
+corr_result$correlation_matrix
+
+# statistical significance (p-values) of the correlation
+corr_result$p_value_matrix
+
+# visualize the correlation
+corr_result$plots
+```
+
+> In this example, there is no statistically significant (p < 0.05) correlation between eigengene (rnaseq PC1) and eigenprotein (prot PC1).
+> This suggests that the relationship between the two omic feature sets might not be direct.
+
+
+Next, lets analyze differential expression/methylation of omic features between patients 
+in bicluster as compared to patients not in the bicluster
+
+```{r,cache=TRUE}
+
+res <- analyze_multiomic_relation(
+  omics_list=list(rnaseq=rnaseq_final,prot=prot_final), 
+  multiomic_relation=grey_relation, 
+  test = "t-test"
+  )
+
+res_rnaseq <- res$rnaseq
+res_prot <- res$prot
+
+res_rnaseq$p.adjust <- p.adjust(res_rnaseq$p_value,method="bonferroni")
+
+# proportion of genes differentially expressed in the rnaseq bicluster
+length(which(res_rnaseq$p.adjust<0.05))/length(grey_relation$features$rnaseq) 
+
+# proportion of proteins differentially expressed in the protein bicluster
+res_prot$p.adjust <- p.adjust(res_prot$p_value,method="bonferroni")
+length(which(res_prot$p.adjust<0.05))/length(grey_relation$features$prot) 
+
+```
+
+Visulatize selected features
+```{r,cache=TRUE,fig.width=4, fig.height=4}
+plot_feature_boxplot(
+  omics_list = list(rnaseq=rnaseq_zscore,prot=prot_zscore),
+  result_list = res,
+  multiomic_relation = grey_relation,
+  omic_type = "rnaseq",rank = 1
+  )
+
+
+plot_feature_boxplot(
+  omics_list = list(rnaseq=rnaseq_zscore,prot=prot_zscore),
+  result_list = res,
+  multiomic_relation = grey_relation,
+  omic_type = "prot",rank = 1
+  )
+
+```
+
+> Patients in biclusters are referred as 'related' and those in the rest of the omic data are referred as 'unrelated'.
+
+
+ Biological pathway enrichment analysis among the omic features in the grey multi-omic relation.
+ 
+```{r,cache=TRUE}
+
+library(clusterProfiler)
+library(org.Hs.eg.db)
+
+gene_id_map <- mapIds(org.Hs.eg.db, rownames(rnaseq_final), 'ENTREZID', 'SYMBOL')
+gene_id_map <- data.frame(symbol=names(gene_id_map),entrez=as.character(gene_id_map))
+
+grey_gene_id_map <- mapIds(org.Hs.eg.db, grey_relation$features$rnaseq, 'ENTREZID', 'SYMBOL')
+grey_gene_id_map <- data.frame(symbol=names(grey_gene_id_map),entrez=as.character(grey_gene_id_map))
+
+reference.genes.entrez <- na.omit(gene_id_map$entrez)
+grey_genes_entrez <- na.omit(grey_gene_id_map$entrez)
+
+grey_genes_go_bp <- enrichGO(
+  gene = grey_genes_entrez,
+  universe = reference.genes.entrez, 
+  OrgDb= org.Hs.eg.db, 
+  ont = "BP", 
+  pAdjustMethod = "bonferroni",
+  pvalueCutoff  = 0.05,
+  qvalueCutoff =0.01,
+  readable = TRUE)
+
+grey_genes_go_bp_tb <- grey_genes_go_bp@result 
+head(grey_genes_go_bp_tb)
+
+grey_genes_kegg <- enrichKEGG(
+  gene = grey_genes_entrez,
+  organism="hsa", 
+  pAdjustMethod = "bonferroni",
+  pvalueCutoff  = 0.05,
+  qvalueCutoff =0.01)
+
+grey_genes_kegg_tb <- grey_genes_kegg@result
+head(grey_genes_kegg_tb)
 ```
