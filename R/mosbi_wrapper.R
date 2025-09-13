@@ -12,8 +12,8 @@
 find_ensemble_bc <- function(data_matrix, methods = c("fabia", "isa", "plaid", "qubic"),quiet = TRUE,seed = NULL) {
     
     if (!is.null(seed)) {
-        set.seed(seed)
         RNGkind(kind = "L'Ecuyer-CMRG")
+        set.seed(seed)
       }
     
     if (!requireNamespace("mosbi", quietly = TRUE)) {
