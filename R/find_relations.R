@@ -4,7 +4,7 @@
 #' @description Finds all possible combinations across the input omic biclusters, calculates overlaps for each multi-omic set and return the best overlapping combination.
 #'
 #' @param biclusters_list A named list of biclusters for all omics. Output from 'find_ensemble_bc'. Must be named as c("gwe","meth","prot").
-#' @param module A vector containing member bicluster names
+#' @param module Bicluster module name
 #' @param pheno Data frame with sample IDs as one of the columns with name 'sampleID'
 #' @param bc_dist_obj Output from 'generate_jaccard_dist' for bicluster matrix and jaccard dist for sample ids and bicluster names respectively
 #' @param bc_hclust_obj Output from 'hclust_bcs' function for module names/colours
@@ -13,13 +13,7 @@
 #' find_relations()
 #' @export
 find_relations <- function(biclusters_list,module,pheno,bc_dist_obj,bc_hclust_obj) {
-    # biclusters: a named list of biclusters for all omics. Output from 'find_ensemble_bc'. Must be named as c("gwe","meth","prot").
-    # module: a vector containing member BCs names
-    # pheno: data frame with sample IDs as one of the columns with name 'sampleID'
-    # bc_dist_res: output from 'generate_jaccard_dist' for BC matrix and jaccard dist for sample ids and BC names respectively
-    # bc_hclust_obj: output from 'hclust_bcs' function for module names/colours
-
-
+    
     ############# generate named list of samples from each biclusters in a module #########
     
     bc_dist_mat <- as.matrix(bc_dist_obj[[1]])

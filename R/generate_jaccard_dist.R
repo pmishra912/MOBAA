@@ -12,10 +12,7 @@
 #' generate_jaccard_dist()
 #' @export
 generate_jaccard_dist <- function(mosbi_outputs,omic_names, omic_data,quiet = TRUE){
-    # mosbi_outputs: list of mosbi biclustering outputs for individual omics
-    # omic_names: names of the omics in the same order (eg, c(meth,expr,protein))
-    # omic_data: list of omic data in same order.
-    
+   
     if (!requireNamespace("proxy", quietly = TRUE)) {
         stop("The 'proxy' package is required but not installed.")
       }

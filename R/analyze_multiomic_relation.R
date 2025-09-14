@@ -14,8 +14,6 @@
 #' @export
 analyze_multiomic_relation <- function(omics_list, multiomic_relation, test = "t-test", inter.omics.cor = FALSE, pval_threshold = 0.05) {
   
-  # inter.omics.cor: logical, TRUE if feature-by-feature correlation is needed,
-  # pval_threshold: default is 0.05. Only needed when inter.omics.cor is TRUE
   
   if (!(test %in% c("t-test", "wilcox"))) {
     stop("Invalid test specified. Choose 't-test' or 'wilcox'.")
