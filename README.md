@@ -191,7 +191,7 @@ Hierarchical clustering of biclusters across different omics
     ## [1] "prot_6"   "rnaseq_1" "rnaseq_3" "meth_2"
 
 Find the best multi-omic relation. For example, the grey bicluster
-module contains 4 proteomic biclusters and 2 rnaseq biclusters. The
+module contains 7 proteomic biclusters and 2 rnaseq biclusters. The
 ‘find\_relations’ function selects the best proteomic-rnaseq bicluster
 pair (relation) with maximum sample overlap.
 
