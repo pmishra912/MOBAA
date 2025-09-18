@@ -1,3 +1,4 @@
+## Description
 MOBAA is an R-based tool for discovering biologically meaningful
 subgroups within a population using multi-omics data. The method applies
 biclustering independently to each omics dataset (e.g., gene expression,
