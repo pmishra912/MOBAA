@@ -18,6 +18,7 @@ This makes it a powerful framework for uncovering complex biological
 heterogeneity and advancing precision medicine research.
 
 ## Example Workflow Using TCGA-BRCA Data
+(This tutorial is also available as html page - https://raw.githack.com/pmishra912/MOBAA/main/vignettes/tutorial.html)
 
 In this tutorial, we demonstrate how to use MOBAA with a multi-omic
 dataset from TCGA-BRCA. We’ll retrieve gene expression, methylation, and
