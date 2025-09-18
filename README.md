@@ -280,31 +280,31 @@ Check patient distribution across different subtypes in the whole data
 Is the proportion of patients with subtype ‘Basal-like’ in the grey
 relation greater than the background proportion?
 
-    prop.test(x = 22, n = 22, p = 39/179, alternative = "greater")
+    prop.test(x = 18, n = 18, p = 39/179, alternative = "greater")
 
     ## 
     ##  1-sample proportions test with continuity correction
     ## 
-    ## data:  22 out of 22, null probability 39/179
-    ## X-squared = 74.451, df = 1, p-value < 2.2e-16
+    ## data:  18 out of 18, null probability 39/179
+    ## X-squared = 60.107, df = 1, p-value = 4.492e-15
     ## alternative hypothesis: true p is greater than 0.2178771
     ## 95 percent confidence interval:
-    ##  0.8531437 1.0000000
+    ##  0.8248663 1.0000000
     ## sample estimates:
     ## p 
     ## 1
 
     ## or, in case of lower sample size, binom.test is the exact test and preferred
-    binom.test(x = 22, n = 22, p = 39/179, alternative = "greater")
+    binom.test(x = 18, n = 18, p = 39/179, alternative = "greater")
 
     ## 
     ##  Exact binomial test
     ## 
-    ## data:  22 and 22
-    ## number of successes = 22, number of trials = 22, p-value = 2.758e-15
+    ## data:  18 and 18
+    ## number of successes = 18, number of trials = 18, p-value = 1.224e-12
     ## alternative hypothesis: true probability of success is greater than 0.2178771
     ## 95 percent confidence interval:
-    ##  0.8726946 1.0000000
+    ##  0.8466824 1.0000000
     ## sample estimates:
     ## probability of success 
     ##                      1
