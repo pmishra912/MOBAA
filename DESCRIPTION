@@ -10,7 +10,7 @@ Authors@R:
              role = c("aut", "cre")),
       person(given = "Binisha H.",
              family = "Mishra",
-             email = "binishahamal@hotmail.com",
+             email = "binisha.hamalmishra@tuni.fi",
              role = "aut")
     )
 Description: An R package for identifying population subgroups with distinct multi-omics molecular profile. 
