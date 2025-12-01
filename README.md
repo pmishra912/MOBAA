@@ -13,8 +13,7 @@ coherent, multi-layered molecular profiles that may correspond to
 disease subtypes, phenotypes, or other biologically relevant states.
 MOBAA also provides downstream analyses, including phenotype enrichment,
 inter-omics correlation, differential feature analysis, and pathway
-enrichment. Unlike many existing tools that integrate only two omics
-types, MOBAA is scalable to handle multiple omic layers simultaneously.
+enrichment. MOBAA is scalable to handle multiple omic layers simultaneously.
 This makes it a powerful framework for uncovering complex biological
 heterogeneity and advancing precision medicine research.
 
