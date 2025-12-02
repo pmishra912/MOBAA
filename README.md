@@ -20,11 +20,9 @@ heterogeneity and advancing precision medicine research.
 
 ## Package function documentation
 ## find_ensemble_bc
-Description
+Description: Wrapper function for MOSBi biclustering with user-selected algorithms.
 
-Wrapper function for MOSBi biclustering with user-selected algorithms.
-
-Usage
+Usage:
 find_ensemble_bc(
   data_matrix,
   methods = c("fabia", "isa", "plaid", "qubic")
@@ -35,15 +33,163 @@ find_ensemble_bc(
 | `data_matrix` | Omic data matrix with features (rows) and samples (columns).                                 |
 | `methods`     | Character vector of biclustering methods. Options: `"fabia"`, `"isa"`, `"plaid"`, `"qubic"`. |
 
+Details: Runs MOSBi using the selected methods, then merges results into an ensemble of biclusters.
 
+Value: A list of ensemble biclusters.
 
-Details
+## generate_jaccard_dist
+Description: Computes Jaccard distance between biclusters across multiple omics.
 
-Runs MOSBi using the selected methods, then merges results into an ensemble of biclusters.
+Usage:
+generate_jaccard_dist(
+  mosbi_outputs,
+  omic_names,
+  omic_data
+)
 
-Value
+| Argument        | Description                                                            |
+| --------------- | ---------------------------------------------------------------------- |
+| `mosbi_outputs` | List of MOSBi results per omic.                                        |
+| `omic_names`    | Names of omics in the same order (e.g., `"meth"`, `"expr"`, `"prot"`). |
+| `omic_data`     | List of omic matrices in matching order.                               |
 
-A list of ensemble biclusters.
+Details: Computes pairwise Jaccard similarity based on sample overlaps and converts to distances.
+
+Value: A Jaccard distance object.
+
+## hclust_bcs
+Description: Hierarchical clustering of multi-omic biclusters using Jaccard-based distance.
+
+Usage:
+hclust_bcs(
+  jaccard_dist,
+  plots = TRUE,
+  cutHeight = 0.8,
+  minModuleSize = 3,
+  quiet = TRUE
+)
+
+| Argument        | Description                                              |
+| --------------- | -------------------------------------------------------- |
+| `jaccard_dist`  | Jaccard distance object (similar to `dissTOM` in WGCNA). |
+| `plots`         | Whether to generate dendrograms.                         |
+| `cutHeight`     | Height at which to cut the tree.                         |
+| `minModuleSize` | Minimum number of biclusters required per module.        |
+| `quiet`         | Suppress messages/warnings.                              |
+
+Details: Clusters biclusters and extracts multi-omic modules.
+
+Value: A list containing: i) all modules, ii) multi-omic modules, and iii) module assignments
+
+## find_relations
+Description: Finds multi-omic bicluster relationships by evaluating all combinations and computing sample overlaps.
+
+Usage:
+find_relations(
+  biclusters_list,
+  module,
+  pheno,
+  bc_dist_obj,
+  bc_hclust_obj
+)
+
+| Argument          | Description                                       |
+| ----------------- | ------------------------------------------------- |
+| `biclusters_list` | Named list of biclusters from `find_ensemble_bc`. |
+| `module`          | Module name.                                      |
+| `pheno`           | Data frame with `sampleID` column.                |
+| `bc_dist_obj`     | Output of `generate_jaccard_dist`.                |
+| `bc_hclust_obj`   | Output of `hclust_bcs`.                           |
+
+Details: Evaluates overlaps across omics and selects the combination with maximum shared samples.
+
+Value: The best multi-omic relation set.
+
+## perm.overlap.sig
+Description: Permutation-based significance test for sample overlap between omic biclusters.
+
+Usage:
+perm.overlap.sig(
+  omic_relations,
+  sample_list
+)
+
+| Argument         | Description                                |
+| ---------------- | ------------------------------------------ |
+| `omic_relations` | Output from `find_relations`.              |
+| `sample_list`    | Vector of sample IDs shared between omics. |
+
+Details: Randomly permutes sample labels to estimate null distribution; uses prop.test for p-value.
+
+Value: A numeric p-value.
+
+## correlate_eigenfeatures
+Description: Computes correlations between PC1 eigenfeatures extracted from bicluster feature matrices.
+
+Usage:
+correlate_eigenfeatures(
+  omic_list,
+  multiomic_relation,
+  output_prefix
+)
+
+| Argument             | Description                                       |
+| -------------------- | ------------------------------------------------- |
+| `omic_list`          | Named list of omic matrices (features × samples). |
+| `multiomic_relation` | Output object from `find_relations`.              |
+| `output_prefix`      | Prefix for saved outputs.                         |
+
+Details: Extracts PC1 per bicluster, then correlates eigenfeatures to assess cross-omic coherence.
+
+Value: A list containing: i) correlation matrix, ii) p-value matrix, and iii) pairwise scatter plots
+
+## analyze_multiomic_relation
+Description: Differential feature testing for bicluster vs non-bicluster samples.
+
+Usage: 
+analyze_multiomic_relation(
+  omics_list,
+  multiomic_relation,
+  test = "t-test",
+  inter.omics.cor = FALSE,
+  pval_threshold = 0.05
+)
+
+| Argument             | Description                                 |
+| -------------------- | ------------------------------------------- |
+| `omics_list`         | Named list of omic matrices.                |
+| `multiomic_relation` | Bicluster sample/feature membership object. |
+| `test`               | `"t-test"` or `"wilcox"`.                   |
+| `inter.omics.cor`    | If TRUE, compute correlations across omics. |
+| `pval_threshold`     | Cutoff for correlation filtering.           |
+
+Details: Tests differences in each feature between bicluster samples and others; optionally correlates features across omics.
+
+Value: Data frame of features with feature name, omic layer, test estimate and p-value.
+
+## plot_feature_boxplot
+Description: Visualizes the distribution of a selected feature for bicluster vs non-bicluster samples.
+
+Usage: 
+plot_feature_boxplot(
+  omics_list,
+  result_list,
+  multiomic_relation,
+  omic_type,
+  rank = 1
+)
+
+| Argument             | Description                             |
+| -------------------- | --------------------------------------- |
+| `omics_list`         | Named list of omic matrices.            |
+| `result_list`        | Output of `analyze_multiomic_relation`. |
+| `multiomic_relation` | Output of `find_relations`.             |
+| `omic_type`          | Omic layer to plot.                     |
+| `rank`               | Rank of feature (1 = strongest signal). |
+
+Details: Selects a feature by significance rank and draws a boxplot comparing bicluster and non-bicluster distributions.
+
+Value: A ggplot2 boxplot.
 
 
 
