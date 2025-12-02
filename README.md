@@ -17,6 +17,37 @@ enrichment. MOBAA is scalable to handle multiple omic layers simultaneously.
 This makes it a powerful framework for uncovering complex biological
 heterogeneity and advancing precision medicine research.
 
+
+## Package function documentation
+## find_ensemble_bc
+Description
+
+Wrapper function for MOSBi biclustering with user-selected algorithms.
+
+Usage
+find_ensemble_bc(
+  data_matrix,
+  methods = c("fabia", "isa", "plaid", "qubic")
+)
+
+| Argument      | Description                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `data_matrix` | Omic data matrix with features (rows) and samples (columns).                                 |
+| `methods`     | Character vector of biclustering methods. Options: `"fabia"`, `"isa"`, `"plaid"`, `"qubic"`. |
+
+
+
+Details
+
+Runs MOSBi using the selected methods, then merges results into an ensemble of biclusters.
+
+Value
+
+A list of ensemble biclusters.
+
+
+
+
 ## Example Workflow Using TCGA-BRCA Data
 (This tutorial is also available as html page - https://raw.githack.com/pmishra912/MOBAA/main/vignettes/tutorial.html)
 
