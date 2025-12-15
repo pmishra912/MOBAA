@@ -74,7 +74,7 @@ hclust_bcs(
 | `jaccard_dist`  | Jaccard distance object (similar to `dissTOM` in WGCNA). |
 | `plots`         | Whether to generate dendrograms.                         |
 | `cutHeight`     | Height at which to cut the tree.                         |
-| `minModuleSize` | Minimum number of biclusters required per module.        |
+| `minModuleSize` | Minimum number of biclusters required per module. Minimum number should correspond to the total number of omics data being analyzed.       |
 | `quiet`         | Suppress messages/warnings.                              |
 
 Details: Clusters biclusters and extracts multi-omic modules.
