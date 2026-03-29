@@ -439,7 +439,7 @@ Check number of overlapped patients across different subtypes.
 
     ## [1] 0
 
-> The participant overlap (n=22) is statistically significant in grey
+> The participant overlap (n=18) is statistically significant in grey
 > relation but not in turquoise. Also, all of the participants who are
 > present in all the biclusters in grey relation (overlap) belong to
 > ‘Basal-like’ subtype. Therefore, lets continue analyzing grey relation
